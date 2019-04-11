@@ -1,0 +1,159 @@
+<html>
+	<head>
+	<!--  
+		https://bootswatch.com/cerulean/   
+		https://datatables.net/examples/advanced_init/length_menu.html
+	-->
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="/js/socket.io.js"></script>
+		<script src="/js/jquery.min.js"></script>
+		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/jquery.dataTables.min.js"></script>
+		<script src="/js/dataTables.bootstrap.min.js"></script>
+		<script src="/js/bootstrap-slider.js"></script>
+		<link rel="stylesheet" href="/css/bootstrap-cerulean-theme.css" media="screen">
+		<link rel="stylesheet" href="/css/dataTables.bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootstrap-slider.css">
+		<link rel="stylesheet" href="/css/custom.css">
+		<title>
+			Titlu
+		</title>
+		<style>
+		
+		
+		</style>
+	</head>
+	<body id="body" style="background-color:#ccddff;">
+		<!--	NAVBAR	-->
+		<nav class="navbar navbar-default">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="#">
+						QuiZzer
+					</a>
+				</div>
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav">
+						<li class="active">
+							<a href="#">
+								Home 
+								<span class="sr-only">
+									(current)
+								</span>
+							</a>
+						</li>
+						<li>
+							<a href="#" id="title2">
+								
+							</a>
+						</li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right">
+						<li>
+							<a href="/destroy" id="username">
+								Something here
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</nav>
+		<!--	NAVBAR END	-->
+		
+		
+		<!--	BODY CONTAINER	-->
+		<div class="container" style="background-color:#99bbff;">
+			<!--	LOGIN	-->
+			<div class="row" id = "userDetails">
+				<div class="form-group col-md-4">
+					<label class="control-label">Username</label>
+					<div class="input-group">
+						<input type="text" class="form-control" id="usernameInput" placeholder="Type username here..." />
+						<span class="input-group-btn">
+							<button class="btn btn-primary" id="setUsername">Submit!</button>
+						</span>
+					</div>
+				</div>
+			</div>
+			<!--	LOGIN END	-->
+            
+            <!--	LOBBY	-->
+			<div class="row" id="lobbyDiv" hidden>
+				<div class="row">
+					<div class="col-md-12">
+						<h1 class="">
+							Currently in lobby
+						</h1>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-6">
+						<button class="btn btn-primary btn-block" id="createRoom">
+                            Create
+                        </button>
+					</div>
+                    <div class="col-md-6">
+						<button class="btn btn-primary btn-block" id="joinRoom">
+                            Join
+                        </button>
+					</div>
+				</div>
+			</div>
+			<!--	LOBBY END	-->
+        </div>
+        
+        <!--	ERROR MODAL	-->
+		<div class="modal" id="errorModal">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						<h4 class="modal-title">Error</h4>
+					</div>
+					<div class="modal-body">
+						<p id="errorModalMessage">An user with the same username already exists. Please choose another nickname!</p>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--	ERROR MODAL END	-->
+    </body>
+    
+    <script>
+		$(document).ready(function(){
+            var socket = io();
+			var username = '';
+			var room = '/';
+            
+            socket.on('connect', function() {
+                socket.emit('checkUserStatus');
+            });
+            
+            $('#setUsername').click(function(){
+				socket.emit('registerUser',$('#usernameInput').val());
+			});
+            
+            socket.on('someError', function(data){
+				$('#errorModalMessage').html(data);
+				$('#errorModal').modal('show');
+			});
+            
+            socket.on('goToLobby', function(userName){
+                console.log(userName);
+                username = userName;
+                $('#username').html(userName);
+                $('#userDetails').hide();
+                $('#lobbyDiv').show();
+            })
+        });
+    </script>
+</html>

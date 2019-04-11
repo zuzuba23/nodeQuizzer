@@ -1,0 +1,23 @@
+{
+	"sEmptyTable":     "No rooms available",
+	"sInfo":           "Showing _START_ to _END_ of _TOTAL_ rooms",
+	"sInfoEmpty":      "Showing 0 to 0 of 0 rooms",
+	"sInfoFiltered":   "(filtered from _MAX_ total rooms)",
+	"sInfoPostFix":    "",
+	"sInfoThousands":  ",",
+	"sLengthMenu":     "Show _MENU_ rooms",
+	"sLoadingRecords": "Loading...",
+	"sProcessing":     "Processing...",
+	"sSearch":         "Search room:",
+	"sZeroRecords":    "No matching rooms found",
+	"oPaginate": {
+		"sFirst":    "First",
+		"sLast":     "Last",
+		"sNext":     "Next",
+		"sPrevious": "Previous"
+	},
+	"oAria": {
+		"sSortAscending":  ": activate to sort column ascending",
+		"sSortDescending": ": activate to sort column descending"
+	}
+}
