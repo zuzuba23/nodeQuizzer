@@ -24,7 +24,6 @@ app.get('/', function(req, res){
 });
 
 app.get('/destroy', function (req, res) {
-    console.log('haa');
     req.session.destroy();
 	res.redirect('/');
 })
@@ -44,18 +43,19 @@ io.on('connection',function(socket){
 	//##### SOCKET INIT
 	console.log('socket connected');
 	users.push(socket);
-    console.log('sockets#: ' + users.length)
 	//##### SOCKET EVENTS
 	socket.on('disconnect',function(){
 		console.log('socket disconnected');
 		var index = users.indexOf(socket);
 		if (index > -1) {
-			users.splice(index,1);
+			users.splice(index, 1);
+			if(typeof socket.roomName !== 'undefined' && socket.roomName != 'lobby'){
+				checkRoomAndDelete(socket.roomName, socket);
+			}
 		}
 	});
     
     socket.on('checkUserStatus', function(){
-        console.log(socket.handshake.session.userName);
         if(typeof socket.handshake.session.userName !== 'undefined'){
             socket.userName = socket.handshake.session.userName;
             socket.roomName = 'lobby';
@@ -107,7 +107,6 @@ io.on('connection',function(socket){
 				socket.roomName = roomName;
 				socket.roomAdmin = true;
 				socket.emit('adminGoToRoom', roomName);
-				io.to('lobby').emit('newRoomCreated', roomName);
 				io.to(roomName).emit('connectedUsersList', getConnectedUsersFromRoom(roomName));
 			} else{
 				socket.emit('someError', 'Room already exists');
@@ -124,10 +123,9 @@ io.on('connection',function(socket){
 				socket.leave('lobby');
 				socket.join(roomName);
 				socket.roomName = roomName;
-				socket.video = '';
 				socket.roomAdmin = false;
 				socket.emit('userGoToRoom', roomName);
-				io.to(roomName).emit('connectedUsersList', getConnectedUsersFromRoom(roomName));
+				io.to(roomName).emit('userJoinedRoom', socket.userName);
 			} else{
 				socket.emit('someError', 'Room does not exist');
 			}
@@ -136,8 +134,65 @@ io.on('connection',function(socket){
 		}
 	});
 	
+	socket.on('start', function(){
+		startQuiz(socket.roomName);
+		socket.emit('connectedUsersList', getConnectedUsersFromRoom(socket.roomName));
+	});
+	
 	socket.on('leaveRoom', function(roomName){		//leave room means return to lobby
-		userLeaveRoom(roomName, socket);
+		checkRoomAndDelete(roomName, socket);
+	});
+	
+	socket.on('sendAnswers', function(answers){
+		sendAnswersToAdminOfRoom(answers, socket);
 	});
 });
 
+function getConnectedUsersFromRoom(roomName){
+	var connectedUsers = [];
+	users.forEach(function(item){
+		if(item.roomName == roomName && item.roomAdmin == false){
+			connectedUsers.push(item.userName);
+		}
+	});
+	return connectedUsers;
+}
+
+function checkRoomAndDelete(roomName, socket){
+	if(socket.roomAdmin == true){
+		console.log('admin a iesit');
+	} else{
+		console.log('un user a iesit');
+	}
+	socket.leave(roomName);
+	socket.join('lobby');
+	socket.roomName = 'lobby';
+	socket.emit('goToLobby', socket.userName);
+	io.to(roomName).emit('userLeftRoom', socket.userName);
+	
+	var usersInRoom = 0;
+	users.forEach(function(item){
+		if(item.roomName == roomName)
+			usersInRoom ++;
+	});
+	if(usersInRoom == 0){		
+		var index = rooms.indexOf(roomName);	
+		rooms.splice(index,1);
+	}
+}
+
+function sendAnswersToAdminOfRoom(answers, socket){
+	users.forEach(function(user){
+		if(user.roomName == socket.roomName && user.roomAdmin == true){
+			user.emit('somebodySentAnswers', socket.userName, answers);
+		}
+	});
+}
+
+function startQuiz(roomName){
+	users.forEach(function(user){
+		if(user.roomName == roomName && user.roomAdmin == false){
+			user.emit('getAnswers');
+		}
+	});
+}

@@ -7,7 +7,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<script src="/js/socket.io.js"></script>
 		<script src="/js/jquery.min.js"></script>
-		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/bootstrap.js"></script>
 		<script src="/js/jquery.dataTables.min.js"></script>
 		<script src="/js/dataTables.bootstrap.min.js"></script>
 		<script src="/js/bootstrap-slider.js"></script>
@@ -46,11 +46,6 @@
 								<span class="sr-only">
 									(current)
 								</span>
-							</a>
-						</li>
-						<li>
-							<a href="#" id="title2">
-								
 							</a>
 						</li>
 					</ul>
@@ -94,20 +89,86 @@
 				</div>
 				<div class="row">
 					<div class="col-md-6">
+						<div class="row">
+							<div class="col-md-12 h3">
+								RoomName:<input type="text" id="roomNameText"/>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-6">
 						<button class="btn btn-primary btn-block" id="createRoom">
                             Create
                         </button>
-					</div>
-                    <div class="col-md-6">
 						<button class="btn btn-primary btn-block" id="joinRoom">
                             Join
                         </button>
 					</div>
+                    <div class="col-md-6">
+					</div>
 				</div>
 			</div>
 			<!--	LOBBY END	-->
+			
+			<!--	ROOM	-->
+			<div class="row" style="margin-left:1%;margin-right:1%" hidden id="roomDiv">
+				<div class="row">
+					<div class="col-md-11">
+						<h1 id="roomName">
+							Currently in room x
+						</h1>
+					</div>
+					<div class="col-md-1">
+						<button id="leaveRoom" class="btn btn-warning">
+							Leave
+						</button>
+					</div>
+				</div>
+				
+				<div class="row" id="participantsDiv" hidden>
+					<div class="col-md-6">
+						<div class="list-group">
+							<a href="#" class="list-group-item list-group-item-action active">
+								Participants
+							</a>
+							<div id="participantsList">
+								
+							</div>
+						</div>
+					</div>
+					
+					<div class="col-md-6">
+						<div class="list-group">
+							<a href="#" class="list-group-item list-group-item-action active">
+								Controls
+							</a>
+							<div class="row">
+								<form class="form-inline">
+									<div class="col-md-12">
+										<input type="number" class="form-control" min="0" placeholder="# of Answers">
+										<button id="start" type="button" class="btn btn-success">
+											Start!
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<div class="row" id="answersDiv" hidden>
+					<div class="col-md-12" id="answersDiv2">
+						
+					</div>
+					<div class="col-md-12" id="submitButtonDiv" hidden>
+						<button class="btn btn-success" id="submitAnswer">Submit</button>
+					</div>
+				</div>
+			</div>
+			<!--	ROOM END	-->
         </div>
-        
+		
         <!--	ERROR MODAL	-->
 		<div class="modal" id="errorModal">
 			<div class="modal-dialog">
@@ -133,11 +194,11 @@
             var socket = io();
 			var username = '';
 			var room = '/';
-            
+			
             socket.on('connect', function() {
                 socket.emit('checkUserStatus');
             });
-            
+			
             $('#setUsername').click(function(){
 				socket.emit('registerUser',$('#usernameInput').val());
 			});
@@ -148,12 +209,112 @@
 			});
             
             socket.on('goToLobby', function(userName){
-                console.log(userName);
                 username = userName;
-                $('#username').html(userName);
+                $('#username').html('Logout(' + userName + ')');
                 $('#userDetails').hide();
+				$('#roomDiv').hide();
                 $('#lobbyDiv').show();
-            })
+            });
+			
+			$('#createRoom').click(function(){
+				socket.emit('createRoom', $('#roomNameText').val());
+			});
+			
+			$('#joinRoom').click(function(){
+				socket.emit('joinRoom', $('#roomNameText').val());
+			});
+			
+			socket.on('adminGoToRoom', function(roomName){
+				room = roomName;
+				$('#lobbyDiv').hide();
+				$('#roomDiv').show();
+				$('#participantsDiv').show();
+				$('#answersDiv').hide();
+				$('#roomName').html('Created room:' + roomName);
+			});
+			
+			socket.on('connectedUsersList', function(users){
+				var html = '';
+				users.forEach(function(item){
+					html+= '<a href="#" class="list-group-item list-group-item-action">' + item + '</a>';
+				});
+				$('#participantsList').html(html);
+			});
+			
+			socket.on('userJoinedRoom', function(userName){
+				$('#participantsList').append('<a href="#" class="list-group-item list-group-item-action">' + userName + '</a>')
+			});
+			
+			socket.on('userLeftRoom', function(userName){
+				$('#participantsList a:contains("' + userName + '")').remove();
+			});
+			
+			$('#username').click(function(){
+				
+			});
+			
+			socket.on('userGoToRoom', function(roomName){
+				room = roomName;
+				$('#lobbyDiv').hide();
+				$('#roomDiv').show();
+				$('#roomName').html('Joined room:' + roomName);
+				$('#participantsDiv').hide();
+				$('#answersDiv').show();
+				$('#submitButtonDiv').hide();
+				$('#answersDiv2').html('<h4>Waiting for question...</h4>');
+			});
+			
+			$('#leaveRoom').click(function(){
+				socket.emit('leaveRoom', room);
+			});
+			
+			$('#start').click(function(){
+				socket.emit('start');
+			});
+			
+			$('#submitAnswer').click(function(){
+				var answers = [];
+				$('#checkboxes').children('label').each(function(i){
+					if($($('#checkboxes').children('label')[i]).hasClass('active') == true){
+						answers.push($($($('#checkboxes').children('label')[i]).children(":first")).val());
+					}
+				});
+				socket.emit('sendAnswers', answers);
+				$('#answersDiv2').html('<h4>Waiting for a question...</h4>');
+				$('#submitButtonDiv').hide();
+			});
+			
+			socket.on('getAnswers', function(){
+				var html = '\
+							<div class="btn-group" data-toggle="buttons" id="checkboxes">\
+								<label class="btn btn-primary big-btn">\
+									<input type="checkbox" name="answer" value="A"><h2> A </h2>\
+								</label>\
+								<label class="btn btn-primary big-btn">\
+									<input type="checkbox" name="answer" value="B"><h2> B </h2>\
+								</label>\
+								<label class="btn btn-primary big-btn">\
+									<input type="checkbox" name="answer" value="C"><h2> C </h2>\
+								</label>\
+								<label class="btn btn-primary big-btn">\
+									<input type="checkbox" name="answer" value="D"><h2> D</h2>\
+								</label>\
+								<label class="btn btn-primary big-btn">\
+									<input type="checkbox" name="answer" value="E"><h2> E </h2>\
+								</label>\
+								<label class="btn btn-primary big-btn">\
+									<input type="checkbox" name="answer" value="F"><h2> F </h2>\
+								</label>\
+							</div>\
+						';
+				$('#answersDiv2').html(html);
+				$('#submitButtonDiv').show();
+			});
+			
+			socket.on('somebodySentAnswers', function(userName, answers){
+				console.log(userName, answers);
+				$('#participantsList a:contains("' + userName + '")').html(userName + ' -- ' + answers);
+			});
         });
     </script>
 </html>
